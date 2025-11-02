@@ -1,33 +1,42 @@
 
 #!/usr/bin/env python3
 import vlc
-from mfrc522 import MFRC522
+import time
+from evdev import InputDevice, categorize, ecodes
 
-MUSIC_FILE = "/mnt/nas/media/music/No Surprises.mp3"
-player = vlc.MediaPlayer()
-reader = MFRC522()
-tag_map = {"123456": MUSIC_FILE}
+NO_SURPRISES = "/mnt/nas/media/music/music_box/Radiohead/No Surprises.mp3"
+KARMA_POLICE = "/mnt/nas/media/music/music_box/Radiohead/Karma Police.mp3"
+DEVICE_PATH = '/dev/input/event4'
+SONG_LIST = [
+    NO_SURPRISES,
+    KARMA_POLICE
+]
+instance = vlc.Instance()
+player = instance.media_player_new()
 
-status =  None
-while status != reader.MI_OK:
-	(status, TagType) = reader.Request(reader.PICC_REQIDL)
-	if status == reader.MI_OK:
-		print("Connection Success!")
+current_index = 0
 
-# while True:
-# 	tag_id, _ = reader.read()
-# 	print(tag_id)
-# 	if str(tag_id) in tag_map:
-# 		player.set_mrl(tag_map[str(tag_id)])
-# 		player.play()
+def play_song(index):
+    media = instance.media_new(SONG_LIST[index])
+    player.set_media(media)
+    player.play()
+    print(f"Now playing: {SONG_LIST[index]}")
 
-# while True:
-# 	cmd = input("(p)lay, (s)top, (q)uit: ").strip().lower()
-# 	if cmd == "p":
-# 		player.play()
-# 		print("No playing 'No Surprises - Radiohead'")
-# 	elif cmd == "s":
-# 		player.stop()
-# 	elif cmd == "q":
-# 		player.stop()
-# 		break
+# --- MAIN LOOP ---
+device = InputDevice(DEVICE_PATH)
+print(f"Listening for events from {device.name}")
+
+play_song(current_index)
+
+for event in device.read_loop():
+    if event.type == ecodes.EV_KEY:
+        key_event = categorize(event)
+
+        if key_event.keycode == 'KEY_NEXTSONG' and key_event.keystate == key_event.key_down:
+            current_index = (current_index + 1) % len(SONG_LIST)
+            play_song(current_index)
+
+    # Optional: check if song finished automatically
+    if player.get_state() not in {1, 2, 3, 4}:  # playing/paused states
+        current_index = (current_index + 1) % len(SONG_LIST)
+        play_song(current_index)
