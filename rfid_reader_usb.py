@@ -11,7 +11,7 @@ HID_KEYCODES = {
     0x1E: '1', 0x1F: '2', 0x20: '3', 0x21: '4',
     0x22: '5', 0x23: '6', 0x24: '7', 0x25: '8',
     0x26: '9', 0x27: '0',
-    0x28: '\n'  # Enter
+    0x28: '\n'
 }
 
 with open('/dev/hidraw0', 'rb') as f:
@@ -21,13 +21,14 @@ with open('/dev/hidraw0', 'rb') as f:
         key = data[2]
         if key == 0:
             continue
-        if key == 0x28:  # Enter means end of tag
+        if key == 0x28:
+            # end of tag
             print("Tag scanned:", code)
             code = ''
         else:
             code += HID_KEYCODES.get(key, '')
 
-# device = "/dev/hidraw0"  # change if needed
+# device = "/dev/hidraw0"
 # with open(device, "rb") as f:
 #     print(f"Listening on {device}... (Ctrl+C to quit)")
 #     while True:
